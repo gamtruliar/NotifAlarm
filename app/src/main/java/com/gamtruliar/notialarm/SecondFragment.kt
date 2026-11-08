@@ -1,10 +1,17 @@
 package com.gamtruliar.notialarm
 
+import android.Manifest
+import android.app.AlertDialog
 import android.app.Activity
+import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Build
+import android.provider.Settings
+import android.service.notification.NotificationListenerService
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -30,7 +37,9 @@ import android.net.Uri
 import android.app.Activity.RESULT_OK
 import android.graphics.drawable.Drawable
 import android.widget.AdapterView
+import android.widget.SeekBar
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import com.gamtruliar.notialarm.Base.NoMenuFragment
 import com.gamtruliar.notialarm.Data.AppData
 import kotlinx.serialization.encodeToString
@@ -43,6 +52,9 @@ class SecondFragment : NoMenuFragment(), AdapterView.OnItemSelectedListener {
 
     private var _binding: FragmentSecondBinding? = null
     var prefs: SharedPreferences?=null
+    private var responseRulesEditor: ResponseRulesEditor? = null
+    private var wifiPermissionDialog: AlertDialog? = null
+    private var currentWifiSsidResult: ((String) -> Unit)? = null
 
     // This property is only valid between onCreateView and
     // onDestroyView.
@@ -52,7 +64,11 @@ class SecondFragment : NoMenuFragment(), AdapterView.OnItemSelectedListener {
             inflater: LayoutInflater, container: ViewGroup?,
             savedInstanceState: Bundle?
     ): View? {
-
+        if (AppCommon.curFilterData == null) {
+            savedInstanceState?.getString("editing_filter")?.let { json ->
+                AppCommon.curFilterData = Json.decodeFromString<FilterData>(json)
+            }
+        }
         _binding = FragmentSecondBinding.inflate(inflater, container, false)
         return binding.root
 
@@ -125,6 +141,9 @@ class SecondFragment : NoMenuFragment(), AdapterView.OnItemSelectedListener {
         }
 
         binding.spinner.setSelection(AppCommon.curFilterData!!.ringDuration)
+        binding.volumeSeekBar.progress = filterData.soundVolume.coerceIn(0, 100)
+        binding.volumeValue.text = getString(R.string.response_volume_value, filterData.soundVolume.coerceIn(0, 100))
+        responseRulesEditor?.render(filterData)
     }
     fun onSubConEdit(data:SubFilterData){
         AppCommon.curSubFilter=data
@@ -166,6 +185,22 @@ class SecondFragment : NoMenuFragment(), AdapterView.OnItemSelectedListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         prefs =AppCommon.getSharedPref(view.context)
+        responseRulesEditor = ResponseRulesEditor(
+            requireContext(), binding.responseRules,
+            onWifiRuleSaved = { requestWifiRulePermission() },
+            onCurrentWifiRequested = { requestCurrentWifiSsid(it) }
+        )
+        binding.addResponseRule.setOnClickListener {
+            responseRulesEditor?.add(AppCommon.curFilterData!!)
+        }
+        binding.volumeSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                binding.volumeValue.text = getString(R.string.response_volume_value, progress)
+                if (fromUser) AppCommon.curFilterData?.soundVolume = progress
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
         val navController =  findNavController()
         binding.fabApp.setOnClickListener { view ->
             Toast.makeText(activity,getString(R.string.NeedTimeToSearchApp),Toast.LENGTH_SHORT).show()
@@ -228,9 +263,23 @@ class SecondFragment : NoMenuFragment(), AdapterView.OnItemSelectedListener {
         binding.testBtn.setOnClickListener{view->
             if(AppCommon.curFilterData!!.packageNames.count()>0) {
                 AppCommon.saveFilter(AppCommon.curFilterData!!,prefs!!)
-                var it=Intent(AppCommon.ACTION_NARM_NAction_Test)
+                val context = requireContext().applicationContext
+                var it=Intent(AppCommon.ACTION_NARM_NAction_Test).setPackage(context.packageName)
                 it.putExtra("FilterUID",AppCommon.curFilterData!!.filerUID)
-                requireActivity().sendBroadcast(it)
+                context.sendOrderedBroadcast(it, null, object : BroadcastReceiver() {
+                    override fun onReceive(receiverContext: Context, intent: Intent?) {
+                        val message = when {
+                            resultCode > 0 -> resultCode
+                            resultCode == Activity.RESULT_CANCELED -> {
+                                NotificationListenerService.requestRebind(
+                                    ComponentName(context, NotificationCollectorService::class.java))
+                                R.string.test_service_unavailable
+                            }
+                            else -> return
+                        }
+                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                    }
+                }, null, Activity.RESULT_CANCELED, null, null)
             }else{
                 Toast.makeText(activity,getString(R.string.needAddAppToTest),Toast.LENGTH_LONG).show()
             }
@@ -262,9 +311,99 @@ class SecondFragment : NoMenuFragment(), AdapterView.OnItemSelectedListener {
         }
     }
 
+    private fun requestCurrentWifiSsid(onResult: (String) -> Unit) {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+            == PackageManager.PERMISSION_GRANTED) {
+            currentWifiSsidResult = onResult
+            fillCurrentWifiSsid()
+        } else {
+            wifiPermissionDialog = AlertDialog.Builder(requireContext())
+                .setTitle(R.string.response_wifi_current_permission_title)
+                .setMessage(R.string.response_wifi_current_permission_help)
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    currentWifiSsidResult = onResult
+                    requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION), 2109)
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+    }
+
+    private fun fillCurrentWifiSsid() {
+        val onResult = currentWifiSsidResult ?: return
+        currentWifiSsidResult = null
+        if (_binding == null) return
+        val ssid = TriggerContextProvider.readConnectedSsid(requireContext())
+        if (ssid != null) {
+            onResult(ssid)
+        } else {
+            wifiPermissionDialog = AlertDialog.Builder(requireContext())
+                .setTitle(R.string.response_wifi_current_permission_title)
+                .setMessage(R.string.response_wifi_current_unavailable)
+                .setPositiveButton(R.string.response_open_settings) { _, _ ->
+                    startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:" + requireContext().packageName)))
+                }
+                .setNeutralButton(R.string.response_wifi_location_settings) { _, _ ->
+                    startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+    }
+
+    private fun requestWifiRulePermission() {
+        AppCommon.curFilterData?.takeIf { it.packageNames.isNotEmpty() }?.let {
+            AppCommon.saveFilter(it, prefs!!)
+        }
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 2107)
+        } else {
+            requestBackgroundWifiPermission()
+        }
+    }
+
+    private fun requestBackgroundWifiPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
+            ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED) return
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
+            requestPermissions(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION), 2108)
+        } else {
+            wifiPermissionDialog = AlertDialog.Builder(requireContext())
+                .setTitle(R.string.response_wifi_background_title)
+                .setMessage(R.string.response_wifi_background_help)
+                .setPositiveButton(R.string.response_open_settings) { _, _ ->
+                    startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + requireContext().packageName)))
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 2109) {
+            fillCurrentWifiSsid()
+        } else if (requestCode == 2107) {
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                requestBackgroundWifiPermission()
+            } else {
+                Toast.makeText(context, R.string.response_wifi_permission_help, Toast.LENGTH_LONG).show()
+            }
+        } else if (requestCode == 2108 && (grantResults.isEmpty() || grantResults[0] != PackageManager.PERMISSION_GRANTED)) {
+            Toast.makeText(context, R.string.response_wifi_permission_help, Toast.LENGTH_LONG).show()
+        }
+    }
+
     override fun onPause() {
         super.onPause()
 
+    }
+    override fun onSaveInstanceState(outState: Bundle) {
+        AppCommon.curFilterData?.let { outState.putString("editing_filter", Json.encodeToString(it)) }
+        super.onSaveInstanceState(outState)
     }
     override fun onResume() {
         super.onResume()
@@ -286,6 +425,11 @@ class SecondFragment : NoMenuFragment(), AdapterView.OnItemSelectedListener {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        responseRulesEditor?.dismiss()
+        responseRulesEditor = null
+        currentWifiSsidResult = null
+        wifiPermissionDialog?.dismiss()
+        wifiPermissionDialog = null
         _binding = null
     }
 }

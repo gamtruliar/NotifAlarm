@@ -104,4 +104,69 @@
     <string name="testBtn">Test</string>
     <string name="needAddAppToTest">At least one app needed</string>
     <string name="NeedTimeToSearchApp">It will take a few seconds to search apps</string>
+    <string name="response_volume">Ringtone volume</string>
+    <string name="response_volume_value">Ringtone volume: %1$d%%</string>
+    <string name="response_volume_help" formatted="false">Percentage of the device alarm volume. 0% is silent; 100% keeps the current alarm volume.</string>
+    <string name="response_rules">Conditional responses</string>
+    <string name="response_rules_help">Rules are checked from top to bottom. The first matching rule chooses sound, vibration and volume. All conditions within a rule must match. With no match, the sound, vibration and volume settings above apply. Existing global switches and ban periods still apply.</string>
+    <string name="response_add_rule">Add response rule</string>
+    <string name="response_edit_rule">Edit response rule</string>
+    <string name="response_no_rules">No rules. The settings above apply to every trigger.</string>
+    <string name="response_rule_number">Rule %1$d</string>
+    <string name="response_rule_name">Rule name (optional)</string>
+    <string name="response_enabled">Enable rule</string>
+    <string name="response_edit">Edit</string>
+    <string name="response_delete">Delete</string>
+    <string name="response_delete_confirm">Delete “%1$s”?</string>
+    <string name="response_move_up">Move up</string>
+    <string name="response_move_down">Move down</string>
+    <string name="response_use_time">Only within a time range</string>
+    <string name="response_time_button">%1$s: %2$s</string>
+    <string name="response_time_summary">%1$s–%2$s</string>
+    <string name="response_time_help">Uses local time, including the start and excluding the end. Overnight ranges are supported; equal start and end means all day. Weekday always refers to the current day, including after midnight.</string>
+    <string name="response_weekdays">Weekdays</string>
+    <string name="response_weekdays_value">Weekdays: %1$s</string>
+    <string name="response_any_day">Every day (none selected)</string>
+    <string name="response_wifi">Connected Wi-Fi SSIDs</string>
+    <string name="response_wifi_hint">One SSID per line; blank means any network</string>
+    <string name="response_wifi_use_current">Use current Wi-Fi</string>
+    <string name="response_wifi_current_permission_title">Read current Wi-Fi</string>
+    <string name="response_wifi_current_permission_help">To fill in your current Wi-Fi name, allow precise location and enable Location. This leaves the rule editor open.</string>
+    <string name="response_wifi_current_unavailable">Connect to Wi-Fi and enable Location, then try again. If location access was denied, enable precise location in app permissions.</string>
+    <string name="response_wifi_location_settings">Location settings</string>
+    <string name="response_wifi_summary">Wi-Fi: %1$s</string>
+    <string name="response_wifi_permission_help">Wi-Fi names must match exactly, including case and spaces. Any listed SSID can match. Background matching needs precise location permission, Location enabled, and “Allow all the time” on Android 10+. If the SSID is unavailable, this rule does not match.</string>
+    <string name="response_wifi_background_title">Allow background Wi-Fi matching</string>
+    <string name="response_wifi_background_help">To read the connected Wi-Fi name when a notification arrives in the background, open Permissions → Location, enable precise location and choose “Allow all the time”. You can skip this; the rule stays saved but cannot match when the Wi-Fi name is unavailable.</string>
+    <string name="response_open_settings">Open settings</string>
+    <string name="response_charging">Charging status</string>
+    <string name="response_charging_any">Any charging status</string>
+    <string name="response_charging_yes">Charging</string>
+    <string name="response_charging_no">Not charging</string>
+    <string-array name="response_charging_options">
+        <item>@string/response_charging_any</item>
+        <item>@string/response_charging_no</item>
+        <item>@string/response_charging_yes</item>
+    </string-array>
+    <string name="response_action">When this rule matches</string>
+    <string name="response_any_condition">Any time / network / charging status</string>
+    <string name="response_sound_summary">Sound (%1$d%%)</string>
+    <string name="response_silent">No sound or vibration</string>
+    <string name="response_save">Save</string>
+    <string name="notification_settings">Notification permissions</string>
+    <string name="notification_permission_help">Allow notifications to enable alarms and their stop controls. You can enable them from Notification permissions in the menu.</string>
+    <string name="notification_access_title">Notification access</string>
+    <string name="notification_access_help">NotifAlarm needs to read notifications to match your filters and trigger alarms.\n\nIf Android blocks the switch or says access is denied, choose Access blocked? below.</string>
+    <string name="notification_access_open">Open notification access</string>
+    <string name="notification_access_blocked">Access blocked?</string>
+    <string name="restricted_settings_title">Allow restricted settings</string>
+    <string name="restricted_settings_help">For an APK installed outside an app store, Android may restrict notification access.\n\n1. Open App info using the button below.\n2. Tap ⋮ at the top right, then Allow restricted settings, and complete any verification.\n3. Return to NotifAlarm, open notification access, and enable NotifAlarm.\n\nThe app cannot change this setting for you. If the option is missing, try enabling notification access once first; the location or availability of this option can also vary by device.</string>
+    <string name="restricted_settings_open">Open App info</string>
+    <string name="notification_settings_unavailable">Unable to open this settings page. Open Settings → Apps → NotifAlarm manually.</string>
+    <string name="test_started">Test started. Tap the alarm notification to stop.</string>
+    <string name="test_service_unavailable">Notification service is not connected. Enable Notification access from the menu, then try again.</string>
+    <string name="test_alarm_channel_blocked">Alarm notifications are disabled. Enable the alarm channel in Notification permissions.</string>
+    <string name="test_vibration_disabled">Vibration is disabled by the current response settings.</string>
+    <string name="test_vibration_paused">Vibration is paused by the global switch or a no-vibration period.</string>
+    <string name="test_no_vibrator">This device has no vibrator.</string>
 </resources>

@@ -33,8 +33,8 @@ version with:
 
 ```sh
 git push origin main
-git tag v1.0.4
-git push origin v1.0.4
+git tag v1.0.5
+git push origin v1.0.5
 ```
 
 The tag must point to a commit containing this workflow. Use a new version tag
@@ -66,12 +66,63 @@ Run `./gradlew :app:assembleDebug :app:testDebugUnitTest` on macOS/Linux (or
 The APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
 The build runs on JDK 27 and emits Java/Kotlin 17 bytecode for Android.
-`compileSdk` is 37; `minSdk` remains 24 and `targetSdk` remains 30. Raising the
-target SDK requires a separate Android behavior migration and device testing,
-especially for notification permission and background execution changes.
+Version 1.0.5 (version code 7) uses `compileSdk` and `targetSdk` 37 (Android 17),
+with `minSdk` 24. On Android 13+, allow notification permission when first
+opening the app; notification-listener access is a separate system setting.
+You can reopen notification settings from **Notification permissions** in the
+main menu. Alarms are paused while app notifications or the alarm channel are
+disabled, so an alarm always has a visible stop control.
+
+If Android blocks notification-listener access for a sideloaded APK, choose
+**Notification access → Access blocked? → Open App info** in the main menu.
+The app explains how to use **⋮ → Allow restricted settings** on the system
+App info page. On return, it checks notification access and offers the access
+settings again if still needed. Android requires the user to unlock this
+setting; the app only opens the appropriate page. See the
+[Android restricted settings instructions](https://support.google.com/android/answer/12623953).
+
+Internal broadcast receivers are private to the app, notification pending
+intents are immutable, and the layout handles system bars and keyboard insets.
+The higher target SDK addresses the outdated-Android-target warning; it does
+not guarantee approval by Play Protect or remove sideloading/restricted-settings
+checks. Notification listening and background alarms still require device testing.
 
 Simple to use:
 ADD->Select app-> keywords -> Done!!!
+
+## Volume and conditional responses
+
+Open a filter's detail page to set its default sound, vibration and ringtone
+volume (0–100%). Volume is relative to the device's current alarm volume;
+0% mutes the ringtone and does not disable vibration.
+
+Under **Conditional response rules**, add rules for a local time range,
+weekdays, connected Wi-Fi SSIDs and charging state. Each rule chooses its own
+sound/vibration combination and volume. Rules can be enabled, edited, deleted
+and moved up or down.
+
+- All specified conditions in a rule must match. Any one of its listed SSIDs
+  is sufficient; names match exactly, including case and spaces (one per line).
+  Use **Use current Wi-Fi** to add the connected network without typing its
+  name, or enter other networks manually.
+- The first matching enabled rule wins. If none match, the filter's default
+  sound, vibration and volume apply. Global switches and ban periods still apply.
+- Time ranges include the start and exclude the end. They can cross midnight;
+  equal endpoints mean all day. Weekdays refer to the current local day, even
+  after midnight. No selected weekdays means every day.
+- An empty SSID list imposes no Wi-Fi condition, including when disconnected.
+  Unavailable Wi-Fi or battery information cannot satisfy a condition that
+  requires it. Rules are evaluated when a notification arrives; an ongoing
+  alarm does not change when device conditions change.
+- Wi-Fi rules require location access and the system Location switch. For
+  background notification matching on Android 10+, allow location **all the
+  time** (and precise location where offered). Saving a Wi-Fi rule guides you
+  through the optional permission flow. If Android hides the SSID, that rule
+  will not match. See Android's [background location permission guidance](https://developer.android.com/develop/sensors-and-location/location/permissions/background).
+
+The **Test** button uses current device conditions and the same response rules
+and volume settings. Existing saved filters keep their previous behavior until
+rules or volume are changed.
 
 [Secure and safe]
 This is a open source project in 

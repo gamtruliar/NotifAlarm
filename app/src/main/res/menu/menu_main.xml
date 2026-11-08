@@ -9,6 +9,16 @@
         android:title="@string/action_settings"
         app:showAsAction="never" />
     <item
+        android:id="@+id/action_notification_settings"
+        android:orderInCategory="101"
+        android:title="@string/notification_settings"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_notification_access"
+        android:orderInCategory="102"
+        android:title="@string/notification_access_title"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_about"
         android:icon="@drawable/naicon_bg"
         android:orderInCategory="101"

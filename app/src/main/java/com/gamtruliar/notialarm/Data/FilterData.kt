@@ -19,5 +19,7 @@ data class FilterData (
     var specSound:String="",
     var needVibrate:Boolean=true,
     var needSound:Boolean=true,
-    var ringDuration:Int= RingDurationType._5_Minus.ordinal
+    var ringDuration:Int= RingDurationType._5_Minus.ordinal,
+    var soundVolume:Int=100,
+    var responseRules:ArrayList<TriggerResponseRule> = arrayListOf()
 )

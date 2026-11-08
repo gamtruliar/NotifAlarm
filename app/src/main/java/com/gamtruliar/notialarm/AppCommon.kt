@@ -123,7 +123,7 @@ class AppCommon {
             if(tcontext is Activity){
 //                var ser= activity?.getSystemService(NotificationCollectorService::class.java)
 //                checkStartLang(ser)
-                tcontext.sendBroadcast(Intent(ACTION_NARM_NAction_LANG))
+                tcontext.sendBroadcast(Intent(ACTION_NARM_NAction_LANG).setPackage(tcontext.packageName))
 //                tcontext.stopService(Intent(tcontext, NotificationCollectorService::class.java))
 //                tcontext.startService(Intent(tcontext, NotificationCollectorService::class.java))
                 tcontext.recreate()
@@ -275,39 +275,31 @@ class AppCommon {
             return allFilterUID
         }
 
-        fun playAlermSnd(context: Context, path: Uri,durationType: Int):MediaPlayer{
-            var mediaPlayer: MediaPlayer = MediaPlayer();
-            mediaPlayer.setDataSource(context,path);
-            if(durationType==RingDurationType.Once.ordinal){
-
-            }else {
-                mediaPlayer.setLooping(true);
-
-            }
-            var attrs: AudioAttributes = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build();
-            mediaPlayer.setAudioAttributes(attrs);
-            var execer= Executors.newSingleThreadExecutor();
-            val handler = Handler(Looper.getMainLooper())
-            execer.execute(Runnable {
-                //Background work here
-                try {
-                    mediaPlayer.prepare();
-                }catch ( ex: Exception){
-                    Log.e("NARM",""+ex.message)
+        fun playAlermSnd(context: Context, path: Uri, durationType: Int, volume: Int = 100): MediaPlayer {
+            val mediaPlayer = MediaPlayer()
+            try {
+                mediaPlayer.setAudioAttributes(AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build())
+                mediaPlayer.setDataSource(context, path)
+                mediaPlayer.isLooping = durationType != RingDurationType.Once.ordinal
+                // Per-player gain preserves the user's system alarm volume.
+                val gain = volume.coerceIn(0, 100) / 100f
+                mediaPlayer.setVolume(gain, gain)
+                mediaPlayer.setOnPreparedListener { it.start() }
+                mediaPlayer.setOnCompletionListener { it.release() }
+                mediaPlayer.setOnErrorListener { player, what, extra ->
+                    Log.e("NARM", "Alarm playback failed: $what/$extra")
+                    player.release()
+                    true
                 }
-
-
-                handler.post(Runnable {
-                    try {
-                    mediaPlayer.start();
-                    }catch ( ex: Exception){
-                        Log.e("NARM",""+ex.message)
-                    }
-                })
-            })
-            return mediaPlayer
-
-
+                mediaPlayer.prepareAsync()
+                return mediaPlayer
+            } catch (ex: Exception) {
+                mediaPlayer.release()
+                throw ex
+            }
         }
         fun charLimitStr(str:String,limit:Int):String{
             if(str.length>limit){
@@ -382,14 +374,17 @@ class AppCommon {
         fun sendNoti(context: Context,title:String,text:String,extraData:Bundle,uid:Int,intentMod:(it:Intent)->Unit){
 
 
-            var intent= Intent(ACTION_NARM_NAction)
+            var intent= Intent(ACTION_NARM_NAction).setPackage(context.packageName)
             intentMod(intent)
-            val snoozePendingIntent: PendingIntent = PendingIntent.getBroadcast(context, uid,intent ,PendingIntent.FLAG_UPDATE_CURRENT)
+            val snoozePendingIntent: PendingIntent = PendingIntent.getBroadcast(
+                context, uid, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             var builder = NotificationCompat.Builder(context, "NARM")
                 .setSmallIcon(R.drawable.ic_stat_name)
                 .setContentTitle(title)
                 .setContentText(text)
                 .setAutoCancel(true)
+                // Sound and vibration are controlled by the resolved response rule.
+                .setSilent(true)
                 .setExtras(extraData)
                 .setContentIntent(snoozePendingIntent)
                 .setDeleteIntent(snoozePendingIntent)

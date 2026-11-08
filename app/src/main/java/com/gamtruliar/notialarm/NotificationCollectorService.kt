@@ -1,6 +1,7 @@
 package com.gamtruliar.notialarm
 
 import android.content.*
+import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.service.notification.NotificationListenerService
@@ -15,9 +16,13 @@ import android.preference.PreferenceManager
 import android.net.Uri
 import android.os.*
 import android.widget.Toast
+import android.app.NotificationManager
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.gamtruliar.notialarm.CData.RingingData
 import com.gamtruliar.notialarm.Data.BanTimePeriod
 import com.gamtruliar.notialarm.Data.FilterData
+import com.gamtruliar.notialarm.Data.resolveResponse
 import com.gamtruliar.notialarm.Enums.RingDurationType
 import java.lang.Exception
 import java.net.URI
@@ -34,11 +39,13 @@ class NotificationCollectorService : NotificationListenerService() {
     var uid2RingingData=HashMap<Int, RingingData>()
     var m_Recv:ActionBReceiver?=null
     var m_Recv_lang:ActionBReceiver?=null
+    var m_Recv_test:BroadcastReceiver?=null
+    private val alarmHandler = Handler(Looper.getMainLooper())
 
 
 
     fun regRecv(){
-
+        if (m_Recv != null) return
 
         var mRecv=ActionBReceiver { c, intv ->
 //            Log.i("NARM","recv")
@@ -47,7 +54,7 @@ class NotificationCollectorService : NotificationListenerService() {
         m_Recv=mRecv
         var ifilter= IntentFilter()
         ifilter.addAction(AppCommon.ACTION_NARM_NAction)
-        registerReceiver(mRecv,ifilter)
+        ContextCompat.registerReceiver(this, mRecv, ifilter, ContextCompat.RECEIVER_NOT_EXPORTED)
 
         mRecv=ActionBReceiver { c, intv ->
             onNLangRecv(c, intv)
@@ -55,15 +62,18 @@ class NotificationCollectorService : NotificationListenerService() {
         m_Recv_lang=mRecv
         ifilter= IntentFilter()
         ifilter.addAction(AppCommon.ACTION_NARM_NAction_LANG)
-        registerReceiver(mRecv,ifilter)
+        ContextCompat.registerReceiver(this, mRecv, ifilter, ContextCompat.RECEIVER_NOT_EXPORTED)
 
-        mRecv=ActionBReceiver { c, intv ->
-            onTestRecv(c, intv)
+        val testReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val message = onTestRecv(context, intent)
+                if (isOrderedBroadcast) resultCode = message
+            }
         }
-        m_Recv_lang=mRecv
+        m_Recv_test=testReceiver
         ifilter= IntentFilter()
         ifilter.addAction(AppCommon.ACTION_NARM_NAction_Test)
-        registerReceiver(mRecv,ifilter)
+        ContextCompat.registerReceiver(this, testReceiver, ifilter, ContextCompat.RECEIVER_NOT_EXPORTED)
 
 
     }
@@ -86,76 +96,103 @@ class NotificationCollectorService : NotificationListenerService() {
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
+        uid2RingingData.keys.toList().forEach { stopSoundByUID(it) }
         if(m_Recv!=null)unregisterReceiver(m_Recv)
         m_Recv=null
         if(m_Recv_lang!=null)unregisterReceiver(m_Recv_lang)
         m_Recv_lang=null
+        if(m_Recv_test!=null)unregisterReceiver(m_Recv_test)
+        m_Recv_test=null
         return super.onUnbind(intent)
     }
-    fun shotRingWithNoti(notiUID:Int,filterName:String,soundUri:Uri,isSound:Boolean,isVibrate:Boolean,durationType:Int){
-        if(alarming.contains(notiUID))return
-
-        AppCommon.sendNoti(this,getString(R.string.alarmTitle).format(filterName),getString(R.string.alarmText),Bundle(),123+notiUID,{it->
-
-            it.putExtra("FilterUID",notiUID)
-        })
-        var nRingData=RingingData()
-        uid2RingingData[notiUID]=nRingData
-        var played:Boolean=false
-        if(isSound && canSound()) {
-            try {
-                nRingData.mediaPlayer = AppCommon.playAlermSnd(this, soundUri, durationType)
-            }catch ( ex: Exception){
-                Log.e("NARM",""+ex.message)
-            }
-            played=true
+    fun shotRingWithNoti(notiUID: Int, filterName: String, soundUri: Uri,
+                         isSound: Boolean, isVibrate: Boolean, durationType: Int,
+                         soundVolume: Int = 100): Int {
+        if (alarming.contains(notiUID)) return R.string.test_started
+        // Every alarm needs a visible stop control, including after permission revocation.
+        if (!NotificationManagerCompat.from(this).areNotificationsEnabled()) return R.string.notification_permission_help
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            getSystemService(NotificationManager::class.java).getNotificationChannel("NARM")?.importance ==
+            NotificationManager.IMPORTANCE_NONE) return R.string.test_alarm_channel_blocked
+        val playSound = isSound && soundVolume > 0 && canSound()
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            getSystemService(VibratorManager::class.java).defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            (getSystemService(VIBRATOR_SERVICE) as Vibrator)
         }
-        if(isVibrate && canVibrate()){
-            val v = getSystemService(VIBRATOR_SERVICE) as Vibrator
-            var execer= Executors.newSingleThreadExecutor();
-            var vibrationActive=true
-
-            execer.execute(Runnable {
-                while(vibrationActive){
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        v.vibrate(VibrationEffect.createOneShot(1000,VibrationEffect.DEFAULT_AMPLITUDE))
-                    }else{
-                        v.vibrate(1000)
-                    }
-                    Thread.sleep(1000);
-                    if(durationType== RingDurationType.Once.ordinal){
-                        vibrationActive=false
-                    }
-                }
-            })
-            nRingData.vibStoper={->
-                vibrationActive=false
-            }
-            played=true
+        val vibrationMessage = when {
+            !isVibrate -> R.string.test_vibration_disabled
+            !canVibrate() -> R.string.test_vibration_paused
+            !vibrator.hasVibrator() -> R.string.test_no_vibrator
+            else -> R.string.test_started
         }
-        if(played){
-            if(durationType== RingDurationType.Forever.ordinal){
+        val vibrate = vibrationMessage == R.string.test_started
+        // A silent response must not latch the filter and block later notifications.
+        if (!playSound && !vibrate) return vibrationMessage
 
-            }else{
-                var execer= Executors.newSingleThreadExecutor();
-                var dur=AppCommon.RingDurationType2MS[durationType]!!
-                if(dur>0) {
-                    var durActive = true
-                    var endTime = System.currentTimeMillis() + dur;
-                    execer.execute(Runnable {
-                        while (durActive && System.currentTimeMillis()<endTime) {
-                            Thread.sleep(1000 * 60)
-                        }
-                        nRingData.mediaPlayer?.stop()
-                        nRingData.vibStoper?.invoke()
-                    })
-                    nRingData.durStoper={->
-                        durActive=false
-                    }
-                }
-            }
-        }
+        val ringData = RingingData()
+        uid2RingingData[notiUID] = ringData
         alarming.add(notiUID)
+        AppCommon.sendNoti(this, getString(R.string.alarmTitle).format(filterName),
+            getString(R.string.alarmText), Bundle(), 123 + notiUID) {
+            it.putExtra("FilterUID", notiUID)
+        }
+        if (playSound) {
+            try {
+                ringData.mediaPlayer = AppCommon.playAlermSnd(this, soundUri, durationType, soundVolume)
+            } catch (ex: Exception) {
+                Log.e("NARM", "Unable to play alarm", ex)
+            }
+        }
+        if (vibrate) {
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+            val pulse = object : Runnable {
+                override fun run() {
+                    // Unspecified usage can be treated as media/touch vibration or blocked in background.
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        vibrator.vibrate(
+                            VibrationEffect.createOneShot(1000, VibrationEffect.DEFAULT_AMPLITUDE),
+                            VibrationAttributes.Builder().setUsage(VibrationAttributes.USAGE_ALARM).build())
+                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        @Suppress("DEPRECATION")
+                        vibrator.vibrate(
+                            VibrationEffect.createOneShot(1000, VibrationEffect.DEFAULT_AMPLITUDE), audioAttributes)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        vibrator.vibrate(1000L, audioAttributes)
+                    }
+                    if (durationType != RingDurationType.Once.ordinal) {
+                        alarmHandler.postDelayed(this, 1000)
+                    }
+                }
+            }
+            ringData.vibStoper = {
+                alarmHandler.removeCallbacks(pulse)
+                vibrator.cancel()
+            }
+            pulse.run()
+        }
+        val duration = AppCommon.RingDurationType2MS[durationType] ?: -1L
+        if (duration > 0) {
+            val stop = Runnable { stopSoundByUID(notiUID) }
+            alarmHandler.postDelayed(stop, duration)
+            ringData.durStoper = { alarmHandler.removeCallbacks(stop) }
+        }
+        return vibrationMessage
+    }
+
+    private fun triggerFilterResponse(filterData: FilterData): Int {
+        val context = TriggerContextProvider.read(this,
+            needsWifi = filterData.responseRules.any { it.enabled && it.wifiSsids.isNotEmpty() })
+        val response = filterData.resolveResponse(context)
+        val uri = if (filterData.specSound.isNotEmpty()) Uri.parse(filterData.specSound)
+            else RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        return shotRingWithNoti(filterData.filerUID, filterData.filterName, uri,
+            response.needSound, response.needVibrate, filterData.ringDuration, response.soundVolume)
     }
     fun onNLangRecv(context: Context?,intent: Intent?) {
         relocal()
@@ -175,37 +212,34 @@ class NotificationCollectorService : NotificationListenerService() {
             stopSoundByUID(rUID)
         }
     }
-    fun onTestRecv(context: Context?,intent: Intent?) {
-        if(intent==null)return
-        if(prefs==null){
-            var pName=getPackageName()+"_preferences";
-            //Log.i("wawa", "pName:" + pName)
-            prefs = getSharedPreferences( pName, Context.MODE_PRIVATE);
-        }
-        var fuid: Int=0;
-        if(intent.hasExtra("FilterUID")) {
-            fuid = intent.getIntExtra("FilterUID", 0);
-        }
-        Log.i("NARM","onTestRecv:"+fuid)
-        if(intent.hasExtra("FilterUID")){
-            var uri=RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-            var filterData=AppCommon.getFilterDataByUID(prefs!!,fuid)
-            if(filterData.specSound!=""){
-                uri= Uri.parse(filterData.specSound)
-            }
-            shotRingWithNoti(filterData.filerUID,filterData.filterName,uri,filterData.needSound,filterData.needVibrate,filterData.ringDuration)
-        }
+    fun onTestRecv(context: Context?,intent: Intent?): Int {
+        if(intent == null || !intent.hasExtra("FilterUID")) return 0
+        if (prefs == null) prefs = AppCommon.getSharedPref(this)
+        val fuid = intent.getIntExtra("FilterUID", 0)
+        Log.i("NARM", "onTestRecv:$fuid")
+        val filterData = AppCommon.getFilterDataByUID(prefs!!, fuid)
+        stopSoundByUID(fuid)
+        return triggerFilterResponse(filterData)
     }
 
     fun stopSoundByUID(uid:Int){
-        if(uid2RingingData.containsKey(uid)){
-            var rdada=uid2RingingData[uid]
-            rdada?.mediaPlayer?.stop()
-            rdada?.vibStoper?.invoke()
-            rdada?.durStoper?.invoke()
-            uid2RingingData.remove(uid)
+        NotificationManagerCompat.from(this).cancel(123 + uid)
+        alarming.remove(uid)
+        val ringData = uid2RingingData.remove(uid) ?: return
+        ringData.mediaPlayer?.let { player ->
+            // release also cancels preparation, so a dismissed alarm cannot start late.
+            runCatching {
+                player.setOnPreparedListener(null)
+                player.release()
+            }
         }
+        ringData.vibStoper?.invoke()
+        ringData.durStoper?.invoke()
+    }
 
+    override fun onDestroy() {
+        uid2RingingData.keys.toList().forEach { stopSoundByUID(it) }
+        super.onDestroy()
     }
     fun checkWithInTime(periods:HashMap<Int, BanTimePeriod>):Boolean{
         val calendar: Calendar = Calendar.getInstance()
@@ -377,11 +411,7 @@ class NotificationCollectorService : NotificationListenerService() {
         if(filterData.enable==false)return;
         if(canFun(filterData)==false)return;
         if(keywordPassCheck(filterData,title,text)){
-            var uri=RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-            if(filterData.specSound!=""){
-                uri= Uri.parse(filterData.specSound)
-            }
-            shotRingWithNoti(filterData.filerUID,filterData.filterName,uri,filterData.needSound,filterData.needVibrate,filterData.ringDuration)
+            triggerFilterResponse(filterData)
 
         }
 
