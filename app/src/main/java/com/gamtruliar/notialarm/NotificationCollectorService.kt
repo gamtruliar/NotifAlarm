@@ -24,6 +24,7 @@ import com.gamtruliar.notialarm.Data.BanTimePeriod
 import com.gamtruliar.notialarm.Data.FilterData
 import com.gamtruliar.notialarm.Data.resolveResponse
 import com.gamtruliar.notialarm.Enums.RingDurationType
+import com.gamtruliar.notialarm.Enums.VibrationPattern
 import java.lang.Exception
 import java.net.URI
 import java.util.*
@@ -41,6 +42,61 @@ class NotificationCollectorService : NotificationListenerService() {
     var m_Recv_lang:ActionBReceiver?=null
     var m_Recv_test:BroadcastReceiver?=null
     private val alarmHandler = Handler(Looper.getMainLooper())
+    private data class AlarmVibration(val vibrator: Vibrator, val timings: LongArray, val repeat: Int)
+    private val vibrationRequests = linkedMapOf<Int, AlarmVibration>()
+    private var vibrationOwner: Int? = null
+    private var vibrationCompletion: Runnable? = null
+
+    private fun playVibration(uid: Int) {
+        val request = vibrationRequests[uid] ?: return
+        vibrationCompletion?.let { alarmHandler.removeCallbacks(it) }
+        vibrationCompletion = null
+        // Android may ignore a one-time effect while a repeating alarm is still running.
+        vibrationOwner?.let { vibrationRequests[it]?.vibrator?.cancel() }
+        // A preempted one-time rhythm must not replay when another alarm finishes.
+        vibrationOwner?.takeIf { it != uid && vibrationRequests[it]?.repeat == -1 }
+            ?.let { vibrationRequests.remove(it) }
+        vibrationOwner = uid
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ALARM)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+        // Android repeats the whole rhythm, including pauses, with alarm usage in the background.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            request.vibrator.vibrate(
+                VibrationEffect.createWaveform(request.timings, request.repeat),
+                VibrationAttributes.Builder().setUsage(VibrationAttributes.USAGE_ALARM).build())
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            @Suppress("DEPRECATION")
+            request.vibrator.vibrate(VibrationEffect.createWaveform(request.timings, request.repeat), audioAttributes)
+        } else {
+            @Suppress("DEPRECATION")
+            request.vibrator.vibrate(request.timings, request.repeat, audioAttributes)
+        }
+        if (request.repeat == -1) {
+            val complete = Runnable {
+                if (vibrationOwner == uid) {
+                    vibrationRequests.remove(uid)
+                    vibrationOwner = null
+                    vibrationCompletion = null
+                    vibrationRequests.keys.lastOrNull()?.let { playVibration(it) }
+                }
+            }
+            vibrationCompletion = complete
+            alarmHandler.postDelayed(complete, request.timings.sum())
+        }
+    }
+
+    private fun stopVibration(uid: Int) {
+        val request = vibrationRequests.remove(uid) ?: return
+        // Several filters share one motor; stopping a superseded alarm must not cancel its owner.
+        if (vibrationOwner != uid) return
+        vibrationCompletion?.let { alarmHandler.removeCallbacks(it) }
+        vibrationCompletion = null
+        vibrationOwner = null
+        request.vibrator.cancel()
+        vibrationRequests.keys.lastOrNull()?.let { playVibration(it) }
+    }
 
 
 
@@ -107,7 +163,8 @@ class NotificationCollectorService : NotificationListenerService() {
     }
     fun shotRingWithNoti(notiUID: Int, filterName: String, soundUri: Uri,
                          isSound: Boolean, isVibrate: Boolean, durationType: Int,
-                         soundVolume: Int = 100): Int {
+                         soundVolume: Int = 100,
+                         vibrationPattern: String = VibrationPattern.CONTINUOUS.id): Int {
         if (alarming.contains(notiUID)) return R.string.test_started
         // Every alarm needs a visible stop control, including after permission revocation.
         if (!NotificationManagerCompat.from(this).areNotificationsEnabled()) return R.string.notification_permission_help
@@ -146,35 +203,11 @@ class NotificationCollectorService : NotificationListenerService() {
             }
         }
         if (vibrate) {
-            val audioAttributes = AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ALARM)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .build()
-            val pulse = object : Runnable {
-                override fun run() {
-                    // Unspecified usage can be treated as media/touch vibration or blocked in background.
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        vibrator.vibrate(
-                            VibrationEffect.createOneShot(1000, VibrationEffect.DEFAULT_AMPLITUDE),
-                            VibrationAttributes.Builder().setUsage(VibrationAttributes.USAGE_ALARM).build())
-                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        @Suppress("DEPRECATION")
-                        vibrator.vibrate(
-                            VibrationEffect.createOneShot(1000, VibrationEffect.DEFAULT_AMPLITUDE), audioAttributes)
-                    } else {
-                        @Suppress("DEPRECATION")
-                        vibrator.vibrate(1000L, audioAttributes)
-                    }
-                    if (durationType != RingDurationType.Once.ordinal) {
-                        alarmHandler.postDelayed(this, 1000)
-                    }
-                }
-            }
-            ringData.vibStoper = {
-                alarmHandler.removeCallbacks(pulse)
-                vibrator.cancel()
-            }
-            pulse.run()
+            val timings = VibrationPattern.fromId(vibrationPattern).timings
+            val repeat = if (durationType == RingDurationType.Once.ordinal) -1 else 0
+            vibrationRequests[notiUID] = AlarmVibration(vibrator, timings, repeat)
+            ringData.vibStoper = { stopVibration(notiUID) }
+            playVibration(notiUID)
         }
         val duration = AppCommon.RingDurationType2MS[durationType] ?: -1L
         if (duration > 0) {
@@ -192,7 +225,8 @@ class NotificationCollectorService : NotificationListenerService() {
         val uri = if (filterData.specSound.isNotEmpty()) Uri.parse(filterData.specSound)
             else RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
         return shotRingWithNoti(filterData.filerUID, filterData.filterName, uri,
-            response.needSound, response.needVibrate, filterData.ringDuration, response.soundVolume)
+            response.needSound, response.needVibrate, filterData.ringDuration, response.soundVolume,
+            response.vibrationPattern)
     }
     fun onNLangRecv(context: Context?,intent: Intent?) {
         relocal()

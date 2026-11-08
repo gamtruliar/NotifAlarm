@@ -1,5 +1,6 @@
 package com.gamtruliar.notialarm.Data
 
+import com.gamtruliar.notialarm.Enums.VibrationPattern
 import kotlinx.serialization.Serializable
 
 /** Conditions within a rule are combined with AND; entries in a Wi-Fi list use OR. */
@@ -18,7 +19,8 @@ data class TriggerResponseRule(
     var charging: Int = -1,
     var needSound: Boolean = true,
     var needVibrate: Boolean = true,
-    var soundVolume: Int = 100
+    var soundVolume: Int = 100,
+    var vibrationPattern: String = VibrationPattern.CONTINUOUS.id
 ) {
     fun matches(context: TriggerContext): Boolean {
         if (!enabled) return false
@@ -54,15 +56,18 @@ data class TriggerContext(
 data class TriggerResponse(
     val needSound: Boolean,
     val needVibrate: Boolean,
-    val soundVolume: Int
+    val soundVolume: Int,
+    val vibrationPattern: String = VibrationPattern.CONTINUOUS.id
 )
 
 /** The first matching rule wins; otherwise retain this filter's normal response. */
 fun FilterData.resolveResponse(context: TriggerContext): TriggerResponse {
     val rule = responseRules.firstOrNull { it.matches(context) }
     return if (rule != null) {
-        TriggerResponse(rule.needSound, rule.needVibrate, rule.soundVolume.coerceIn(0, 100))
+        TriggerResponse(rule.needSound, rule.needVibrate, rule.soundVolume.coerceIn(0, 100),
+            VibrationPattern.fromId(rule.vibrationPattern).id)
     } else {
-        TriggerResponse(needSound, needVibrate, soundVolume.coerceIn(0, 100))
+        TriggerResponse(needSound, needVibrate, soundVolume.coerceIn(0, 100),
+            VibrationPattern.fromId(vibrationPattern).id)
     }
 }

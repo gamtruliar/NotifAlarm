@@ -92,14 +92,14 @@ ADD->Select app-> keywords -> Done!!!
 
 ## Volume and conditional responses
 
-Open a filter's detail page to set its default sound, vibration and ringtone
-volume (0–100%). Volume is relative to the device's current alarm volume;
+Open a filter's detail page to set its default sound, vibration pattern and
+ringtone volume (0–100%). Volume is relative to the device's current alarm volume;
 0% mutes the ringtone and does not disable vibration.
 
 Under **Conditional response rules**, add rules for a local time range,
 weekdays, connected Wi-Fi SSIDs and charging state. Each rule chooses its own
-sound/vibration combination and volume. Rules can be enabled, edited, deleted
-and moved up or down.
+sound/vibration combination, vibration pattern and volume. Rules can be enabled,
+edited, deleted and moved up or down.
 
 - All specified conditions in a rule must match. Any one of its listed SSIDs
   is sufficient; names match exactly, including case and spaces (one per line).
@@ -120,9 +120,16 @@ and moved up or down.
   through the optional permission flow. If Android hides the SSID, that rule
   will not match. See Android's [background location permission guidance](https://developer.android.com/develop/sensors-and-location/location/permissions/background).
 
-The **Test** button uses current device conditions and the same response rules
-and volume settings. Existing saved filters keep their previous behavior until
-rules or volume are changed.
+Choose **Continuous (default)**, **Short pulse**, **Long pulse**, **Double pulse**,
+**Triple pulse** or **SOS** under **Vibration pattern**, either for the filter's
+default response or for each conditional rule. **Once** plays one complete
+pattern; other durations repeat the rhythm and its pauses until the alarm stops.
+If multiple alarms overlap, the newest vibration takes priority. When it ends,
+any earlier repeating alarm resumes; stopping another alarm leaves it playing.
+
+The **Test** button uses current device conditions and the same response rules,
+volume and vibration pattern settings. Existing saved filters and rules retain
+the original continuous vibration until their pattern is changed.
 
 [Secure and safe]
 This is a open source project in 

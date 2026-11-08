@@ -102,7 +102,7 @@
     <string name="response_volume_value">鈴聲音量：%1$d%%</string>
     <string name="response_volume_help" formatted="false">以裝置目前鬧鐘音量為基準。0% 為靜音，100% 使用目前鬧鐘音量。</string>
     <string name="response_rules">條件反應規則</string>
-    <string name="response_rules_help">由上至下檢查，使用第一條符合的規則決定鈴聲、震動及音量。同一規則內的所有條件都要符合；沒有符合規則時，使用上方的鈴聲、震動及音量設定。全域開關及禁止時段仍然有效。</string>
+    <string name="response_rules_help">由上至下檢查，使用第一條符合的規則決定鈴聲、震動節奏及音量。同一規則內的所有條件都要符合；沒有符合規則時，使用上方的鈴聲、震動節奏及音量設定。全域開關及禁止時段仍然有效。</string>
     <string name="response_add_rule">新增反應規則</string>
     <string name="response_edit_rule">編輯反應規則</string>
     <string name="response_no_rules">尚無規則，每次觸發均使用上方設定。</string>
@@ -158,4 +158,13 @@
     <string name="test_vibration_disabled">目前嘅回應設定已關閉震動。</string>
     <string name="test_vibration_paused">全域震動開關或禁止震動時段暫停咗震動。</string>
     <string name="test_no_vibrator">呢部裝置冇震動功能。</string>
+    <string name="vibration_pattern">震動節奏</string>
+    <string name="vibration_pattern_continuous">連續震動（預設）</string>
+    <string name="vibration_pattern_short">短震</string>
+    <string name="vibration_pattern_long">長震</string>
+    <string name="vibration_pattern_double">雙連震</string>
+    <string name="vibration_pattern_triple">三連震</string>
+    <string name="vibration_pattern_sos">SOS</string>
+    <string name="vibration_pattern_help">「一次」會播完整個節奏；其他持續時間會重複節奏，直至鬧鐘停止。測試會按目前條件使用第一條符合的回應規則。</string>
+    <string name="response_vibration_summary">震動（%1$s）</string>
 </resources>

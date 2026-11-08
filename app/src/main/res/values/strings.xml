@@ -108,7 +108,7 @@
     <string name="response_volume_value">Ringtone volume: %1$d%%</string>
     <string name="response_volume_help" formatted="false">Percentage of the device alarm volume. 0% is silent; 100% keeps the current alarm volume.</string>
     <string name="response_rules">Conditional responses</string>
-    <string name="response_rules_help">Rules are checked from top to bottom. The first matching rule chooses sound, vibration and volume. All conditions within a rule must match. With no match, the sound, vibration and volume settings above apply. Existing global switches and ban periods still apply.</string>
+    <string name="response_rules_help">Rules are checked from top to bottom. The first matching rule chooses sound, vibration pattern and volume. All conditions within a rule must match. With no match, the sound, vibration pattern and volume settings above apply. Existing global switches and ban periods still apply.</string>
     <string name="response_add_rule">Add response rule</string>
     <string name="response_edit_rule">Edit response rule</string>
     <string name="response_no_rules">No rules. The settings above apply to every trigger.</string>
@@ -169,4 +169,13 @@
     <string name="test_vibration_disabled">Vibration is disabled by the current response settings.</string>
     <string name="test_vibration_paused">Vibration is paused by the global switch or a no-vibration period.</string>
     <string name="test_no_vibrator">This device has no vibrator.</string>
+    <string name="vibration_pattern">Vibration pattern</string>
+    <string name="vibration_pattern_continuous">Continuous (default)</string>
+    <string name="vibration_pattern_short">Short pulses</string>
+    <string name="vibration_pattern_long">Long pulses</string>
+    <string name="vibration_pattern_double">Double pulses</string>
+    <string name="vibration_pattern_triple">Triple pulses</string>
+    <string name="vibration_pattern_sos">SOS</string>
+    <string name="vibration_pattern_help">Once plays one full pattern; other durations repeat it until the alarm stops. Test uses current conditions and the first matching response rule.</string>
+    <string name="response_vibration_summary">Vibration (%1$s)</string>
 </resources>

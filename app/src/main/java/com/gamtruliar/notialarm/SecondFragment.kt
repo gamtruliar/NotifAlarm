@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.gamtruliar.notialarm.Data.BanTimePeriod
 import com.gamtruliar.notialarm.Data.FilterData
 import com.gamtruliar.notialarm.Data.SubFilterData
+import com.gamtruliar.notialarm.Enums.VibrationPattern
 import com.gamtruliar.notialarm.databinding.FragmentSecondBinding
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
@@ -109,6 +110,8 @@ class SecondFragment : NoMenuFragment(), AdapterView.OnItemSelectedListener {
 
         binding.switchVibrate.isChecked= AppCommon.curFilterData?.needVibrate!!
         binding.switchSound.isChecked= AppCommon.curFilterData?.needSound!!
+        binding.vibrationPattern.setSelection(VibrationPattern.fromId(filterData.vibrationPattern).ordinal)
+        binding.vibrationPattern.isEnabled = filterData.needVibrate
 
         binding.switchOSPBan.isChecked= AppCommon.curFilterData?.overrideBanTime!!
         if(binding.switchOSPBan.isChecked){
@@ -193,6 +196,13 @@ class SecondFragment : NoMenuFragment(), AdapterView.OnItemSelectedListener {
         binding.addResponseRule.setOnClickListener {
             responseRulesEditor?.add(AppCommon.curFilterData!!)
         }
+        VibrationPatternUi.populate(binding.vibrationPattern, AppCommon.curFilterData!!.vibrationPattern)
+        binding.vibrationPattern.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                AppCommon.curFilterData?.vibrationPattern = VibrationPatternUi.selectedId(binding.vibrationPattern)
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
         binding.volumeSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 binding.volumeValue.text = getString(R.string.response_volume_value, progress)
@@ -234,6 +244,7 @@ class SecondFragment : NoMenuFragment(), AdapterView.OnItemSelectedListener {
         }
         binding.switchVibrate.setOnCheckedChangeListener{view,checked->
             AppCommon.curFilterData?.needVibrate=checked
+            binding.vibrationPattern.isEnabled = checked
         }
         binding.switchSound.setOnCheckedChangeListener{view,checked->
             AppCommon.curFilterData?.needSound=checked

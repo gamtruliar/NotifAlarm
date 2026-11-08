@@ -1,6 +1,7 @@
 package com.gamtruliar.notialarm.Data
 
 import com.gamtruliar.notialarm.Enums.RingDurationType
+import com.gamtruliar.notialarm.Enums.VibrationPattern
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -21,5 +22,6 @@ data class FilterData (
     var needSound:Boolean=true,
     var ringDuration:Int= RingDurationType._5_Minus.ordinal,
     var soundVolume:Int=100,
-    var responseRules:ArrayList<TriggerResponseRule> = arrayListOf()
+    var responseRules:ArrayList<TriggerResponseRule> = arrayListOf(),
+    var vibrationPattern:String=VibrationPattern.CONTINUOUS.id
 )

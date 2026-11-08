@@ -168,6 +168,35 @@
                 </TableRow>
                 <TableRow
                     android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_span="4"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:labelFor="@id/vibrationPattern"
+                            android:text="@string/vibration_pattern" />
+
+                        <Spinner
+                            android:id="@+id/vibrationPattern"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:contentDescription="@string/vibration_pattern" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/vibration_pattern_help" />
+                    </LinearLayout>
+                </TableRow>
+                <TableRow
+                    android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:gravity="center_vertical"
                     android:padding="5dip">

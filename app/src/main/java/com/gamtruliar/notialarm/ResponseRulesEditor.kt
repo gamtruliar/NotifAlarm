@@ -93,7 +93,8 @@ class ResponseRulesEditor(
         if (conditions.isEmpty()) conditions.add(context.getString(R.string.response_any_condition))
         val actions = arrayListOf<String>()
         if (rule.needSound) actions.add(context.getString(R.string.response_sound_summary, rule.soundVolume.coerceIn(0, 100)))
-        if (rule.needVibrate) actions.add(context.getString(R.string.Vibrate))
+        if (rule.needVibrate) actions.add(context.getString(R.string.response_vibration_summary,
+            VibrationPatternUi.name(context, rule.vibrationPattern)))
         if (actions.isEmpty()) actions.add(context.getString(R.string.response_silent))
         return conditions.joinToString(" · ") + "\n→ " + actions.joinToString(" + ")
     }
@@ -102,7 +103,8 @@ class ResponseRulesEditor(
         val original = filter.responseRules.getOrNull(index) ?: TriggerResponseRule(
             needSound = filter.needSound,
             needVibrate = filter.needVibrate,
-            soundVolume = filter.soundVolume
+            soundVolume = filter.soundVolume,
+            vibrationPattern = filter.vibrationPattern
         )
         val content = column().apply { setPadding(dp(20), dp(8), dp(20), dp(16)) }
         val name = EditText(context).apply {
@@ -207,6 +209,18 @@ class ResponseRulesEditor(
         val vibrate = CheckBox(context).apply { setText(R.string.Vibrate); isChecked = original.needVibrate }
         content.addView(sound)
         content.addView(vibrate)
+        val patternLabel = label(context.getString(R.string.vibration_pattern))
+        val pattern = Spinner(context).apply {
+            id = android.view.View.generateViewId()
+            contentDescription = context.getString(R.string.vibration_pattern)
+            VibrationPatternUi.populate(this, original.vibrationPattern)
+            isEnabled = vibrate.isChecked
+        }
+        patternLabel.labelFor = pattern.id
+        vibrate.setOnCheckedChangeListener { _, checked -> pattern.isEnabled = checked }
+        content.addView(patternLabel)
+        content.addView(pattern, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)))
+        content.addView(label(context.getString(R.string.vibration_pattern_help)))
         val volumeLabel = label("")
         val volume = SeekBar(context).apply { max = 100; progress = original.soundVolume.coerceIn(0, 100) }
         fun updateVolume() {
@@ -241,7 +255,8 @@ class ResponseRulesEditor(
                     charging = when (charging.selectedItemPosition) { 1 -> 0; 2 -> 1; else -> -1 },
                     needSound = sound.isChecked,
                     needVibrate = vibrate.isChecked,
-                    soundVolume = volume.progress
+                    soundVolume = volume.progress,
+                    vibrationPattern = VibrationPatternUi.selectedId(pattern)
                 )
                 if (index < 0) filter.responseRules.add(saved) else filter.responseRules[index] = saved
                 render(filter)
