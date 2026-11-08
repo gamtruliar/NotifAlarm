@@ -20,6 +20,32 @@ required. It is intended for testing, not store publishing. The key can change
 between builds, so you may need to uninstall an existing installation first
 (which removes its app data), including an installation from Google Play.
 
+## GitHub Releases
+
+Pushing a tag starting with `v` builds and tests the app, then publishes a
+[GitHub Release](https://github.com/gamtruliar/NotifAlarm/releases) containing
+`NotifAlarm-debug.apk` and `SHA256SUMS.txt`. The Release is published only after
+the build and unit tests succeed. Branch pushes and pull requests keep their
+APKs in Actions artifacts.
+
+After committing the workflow and pushing the branch, publish the current app
+version with:
+
+```sh
+git push origin main
+git tag v1.0.4
+git push origin v1.0.4
+```
+
+The tag must point to a commit containing this workflow. Use a new version tag
+for each release, and update `versionCode`/`versionName` in `app/build.gradle`
+when changing the app version. You can also run **Build APK** manually against
+an existing `v*` tag. Re-running a tag build replaces the APK and checksum
+assets on that tag's existing Release.
+
+Publishing uses GitHub's automatic `GITHUB_TOKEN`; no extra secrets are needed.
+These downloadable APKs use the debug signing described above.
+
 ## Build locally
 
 The build uses JDK 27 (see `.java-version`), Gradle 9.9.0, Android Gradle Plugin
