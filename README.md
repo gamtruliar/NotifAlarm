@@ -131,6 +131,14 @@ The **Test** button uses current device conditions and the same response rules,
 volume and vibration pattern settings. Existing saved filters and rules retain
 the original continuous vibration until their pattern is changed.
 
+## Discord forwarding
+
+In **Settings > Discord forwarding**, save an incoming Discord webhook URL and
+enable forwarding. Matched notifications are posted to that channel separately
+from the local sound/vibration response. **Send test** checks delivery without
+triggering a recording. Forwarding is off by default; enabling it shares matched
+notification content with Discord. The webhook is excluded from Android backups.
+
 [Secure and safe]
 This is a open source project in 
 https://github.com/gamtruliar/NotifAlarm

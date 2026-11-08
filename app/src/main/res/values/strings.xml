@@ -178,4 +178,17 @@
     <string name="vibration_pattern_sos">SOS</string>
     <string name="vibration_pattern_help">Once plays one full pattern; other durations repeat it until the alarm stops. Test uses current conditions and the first matching response rule.</string>
     <string name="response_vibration_summary">Vibration (%1$s)</string>
+    <string name="discord_title">Discord notifications</string>
+    <string name="discord_help">Send matching notifications to a Discord channel. All enabled filters use this webhook; app switches and ban periods still apply. Discord and NotifAlarm notifications are excluded to prevent loops. Save changes before leaving. The connection test does not trigger recording.</string>
+    <string name="discord_enabled">Forward matching notifications to Discord</string>
+    <string name="discord_webhook_url">Discord webhook URL (secret)</string>
+    <string name="discord_save">Save Discord settings</string>
+    <string name="discord_test">Send connection test</string>
+    <string name="discord_saved">Discord settings saved.</string>
+    <string name="discord_invalid_url">Enter a complete https://discord.com/api/webhooks/ID/TOKEN URL without query parameters.</string>
+    <string name="discord_sending">Sending connection test…</string>
+    <string name="discord_sent">Test delivered to Discord. It does not trigger recording.</string>
+    <string name="discord_network_error">Cannot reach Discord. Check your connection and try again.</string>
+    <string name="discord_http_error">Discord rejected the request (HTTP %1$d). Check the webhook URL or try again later.</string>
+    <string name="discord_queue_full">Too many pending messages. Try again shortly.</string>
 </resources>

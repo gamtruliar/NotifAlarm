@@ -15,6 +15,58 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="12dp"
+                android:text="@string/discord_title"
+                android:textAppearance="?android:attr/textAppearanceMedium" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="12dp"
+                android:text="@string/discord_help" />
+
+            <CheckBox
+                android:id="@+id/discordEnabled"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="12dp"
+                android:text="@string/discord_enabled" />
+
+            <EditText
+                android:id="@+id/discordWebhookUrl"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="12dp"
+                android:hint="@string/discord_webhook_url"
+                android:inputType="textPassword"
+                android:importantForAutofill="no"
+                android:saveEnabled="false"
+                android:singleLine="true" />
+
+            <Button
+                android:id="@+id/discordSave"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="12dp"
+                android:text="@string/discord_save" />
+
+            <Button
+                android:id="@+id/discordTest"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="12dp"
+                android:text="@string/discord_test" />
+
+            <TextView
+                android:id="@+id/discordStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="12dp"
+                android:accessibilityLiveRegion="polite" />
+
 
             <TableLayout
                 android:layout_width="match_parent"

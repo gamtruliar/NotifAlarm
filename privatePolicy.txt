@@ -1,7 +1,15 @@
 In Short
 
-NotifAlarm doesn't log or share your personal information
+NotifAlarm processes notification filters on your device. We do not track you.
 
-we don't track you.
+Discord forwarding is optional and disabled by default. If you enable it,
+matched notification titles and text, source app package names, filter names
+and IDs, event IDs and timestamps are sent to the Discord channel configured
+by your webhook. Discord processes those messages under its own privacy policy.
+Choose filters carefully if notifications may contain personal information.
 
-and it is open source
+The Discord webhook is stored in the app's private storage and excluded from
+Android backup and device transfer. You can disable forwarding or remove the
+webhook in Settings.
+
+The project is open source.

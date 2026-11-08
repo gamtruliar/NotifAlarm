@@ -55,6 +55,40 @@ class SettingFragment : NoMenuFragment() , AdapterView.OnItemSelectedListener{
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         prefs =AppCommon.getSharedPref(view.context)
+        val discord = DiscordSettings.read(requireContext())
+        binding.discordEnabled.isChecked = discord.enabled
+        binding.discordWebhookUrl.setText(discord.webhookUrl)
+        binding.discordSave.setOnClickListener {
+            val url = binding.discordWebhookUrl.text.toString().trim()
+            if ((binding.discordEnabled.isChecked || url.isNotEmpty()) && !DiscordProtocol.validWebhookUrl(url)) {
+                binding.discordStatus.setText(R.string.discord_invalid_url)
+            } else {
+                DiscordSettings.save(requireContext(), binding.discordEnabled.isChecked, url)
+                binding.discordStatus.setText(R.string.discord_saved)
+            }
+        }
+        binding.discordTest.setOnClickListener {
+            val url = binding.discordWebhookUrl.text.toString().trim()
+            if (!DiscordProtocol.validWebhookUrl(url)) {
+                binding.discordStatus.setText(R.string.discord_invalid_url)
+                return@setOnClickListener
+            }
+            binding.discordTest.isEnabled = false
+            binding.discordStatus.setText(R.string.discord_sending)
+            // The test explicitly sends the entered URL, even with forwarding disabled.
+            val testView = binding
+            DiscordForwarder.sendTest(requireContext(), url) { result ->
+                if (_binding !== testView) return@sendTest
+                binding.discordTest.isEnabled = true
+                binding.discordStatus.text = when (result.kind) {
+                    DiscordForwarder.Kind.SENT -> getString(R.string.discord_sent)
+                    DiscordForwarder.Kind.INVALID_URL -> getString(R.string.discord_invalid_url)
+                    DiscordForwarder.Kind.NETWORK_ERROR -> getString(R.string.discord_network_error)
+                    DiscordForwarder.Kind.HTTP_ERROR -> getString(R.string.discord_http_error, result.httpCode)
+                    DiscordForwarder.Kind.QUEUE_FULL -> getString(R.string.discord_queue_full)
+                }
+            }
+        }
         var layoutManager = LinearLayoutManager(context)
         binding.infscrAllBan.layoutManager = layoutManager
         layoutManager = LinearLayoutManager(context)
@@ -196,6 +230,11 @@ class SettingFragment : NoMenuFragment() , AdapterView.OnItemSelectedListener{
 
         }
         //setHasOptionsMenu(true)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
 }

@@ -153,4 +153,17 @@
     <string name="vibration_pattern_sos">SOS</string>
     <string name="vibration_pattern_help">「1 回」はパターン全体を 1 回再生します。それ以外はアラームが停止するまで繰り返します。テストでは現在の条件で最初に一致した反応ルールを使用します。</string>
     <string name="response_vibration_summary">振動（%1$s）</string>
+    <string name="discord_title">Discord 通知</string>
+    <string name="discord_help">フィルターに一致した通知を Discord チャンネルに送信します。有効なすべてのフィルターがこの Webhook を共有し、全体スイッチと停止時間帯も適用されます。ループを防ぐため、Discord と NotifAlarm 自体の通知は転送しません。この画面を閉じる前に保存してください。接続テストでは録画を開始しません。</string>
+    <string name="discord_enabled">一致した通知を Discord に転送する</string>
+    <string name="discord_webhook_url">Discord Webhook URL（秘密情報）</string>
+    <string name="discord_save">Discord の設定を保存</string>
+    <string name="discord_test">接続テストを送信</string>
+    <string name="discord_saved">Discord の設定を保存しました。</string>
+    <string name="discord_invalid_url">https://discord.com/api/webhooks/ID/TOKEN の完全な URL を入力してください。クエリパラメーターは付けないでください。</string>
+    <string name="discord_sending">接続テストを送信中…</string>
+    <string name="discord_sent">テストが Discord に届きました。このメッセージでは録画を開始しません。</string>
+    <string name="discord_network_error">Discord に接続できません。ネットワーク接続を確認して、もう一度お試しください。</string>
+    <string name="discord_http_error">Discord がリクエストを拒否しました（HTTP %1$d）。Webhook URL を確認するか、後でもう一度お試しください。</string>
+    <string name="discord_queue_full">送信待ちのメッセージが多すぎます。しばらくしてからもう一度お試しください。</string>
 </resources>

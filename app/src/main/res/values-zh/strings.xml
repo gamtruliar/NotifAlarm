@@ -167,4 +167,17 @@
     <string name="vibration_pattern_sos">SOS</string>
     <string name="vibration_pattern_help">「一次」會播完整個節奏；其他持續時間會重複節奏，直至鬧鐘停止。測試會按目前條件使用第一條符合的回應規則。</string>
     <string name="response_vibration_summary">震動（%1$s）</string>
+    <string name="discord_title">Discord 通知</string>
+    <string name="discord_help">將配對成功的通知傳送到 Discord 頻道。所有已啟用的篩選器共用此 Webhook，並遵守總開關及停用時段。Discord 及 NotifAlarm 本身的通知不會轉發，避免循環。離開前請儲存。連線測試不會觸發錄影。</string>
+    <string name="discord_enabled">將配對成功的通知傳送到 Discord</string>
+    <string name="discord_webhook_url">Discord Webhook 網址（保密）</string>
+    <string name="discord_save">儲存 Discord 設定</string>
+    <string name="discord_test">傳送連線測試</string>
+    <string name="discord_saved">已儲存 Discord 設定。</string>
+    <string name="discord_invalid_url">請輸入完整的 https://discord.com/api/webhooks/ID/TOKEN 網址，不要加查詢參數。</string>
+    <string name="discord_sending">正在傳送連線測試…</string>
+    <string name="discord_sent">測試已送達 Discord，不會觸發錄影。</string>
+    <string name="discord_network_error">無法連接 Discord。請檢查網絡後再試。</string>
+    <string name="discord_http_error">Discord 拒絕請求（HTTP %1$d）。請檢查 Webhook 網址，或稍後再試。</string>
+    <string name="discord_queue_full">待傳送訊息過多，請稍後再試。</string>
 </resources>

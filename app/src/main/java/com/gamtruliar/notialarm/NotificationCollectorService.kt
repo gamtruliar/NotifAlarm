@@ -367,7 +367,10 @@ class NotificationCollectorService : NotificationListenerService() {
             if(uidMap.containsKey(sbn.packageName)){
                 for(uid in uidMap[sbn.packageName]!!){
                     //--to do: cache
-                    oneFilterHandle(AppCommon.getFilterDataByUID(prefs!!,uid),""+sbn.notification.extras["android.title"],""+sbn.notification.extras["android.text"])
+                    oneFilterHandle(AppCommon.getFilterDataByUID(prefs!!,uid),
+                        sbn.notification.extras.getCharSequence("android.title")?.toString() ?: "",
+                        sbn.notification.extras.getCharSequence("android.text")?.toString() ?: "",
+                        DiscordNotificationOrigin(sbn.packageName, sbn.key, sbn.postTime))
                 }
             }
 
@@ -441,10 +444,12 @@ class NotificationCollectorService : NotificationListenerService() {
         return !anychk
     }
 
-    fun oneFilterHandle(filterData: FilterData,title:String,text:String){
+    fun oneFilterHandle(filterData: FilterData,title:String,text:String, origin: DiscordNotificationOrigin? = null){
         if(filterData.enable==false)return;
         if(canFun(filterData)==false)return;
         if(keywordPassCheck(filterData,title,text)){
+            // Forward independently: a silent/already-active local alarm must not hide an event.
+            origin?.let { DiscordForwarder.forwardMatched(this, filterData, it, title, text) }
             triggerFilterResponse(filterData)
 
         }
